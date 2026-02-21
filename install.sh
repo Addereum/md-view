@@ -5,6 +5,7 @@ set -e
 # Usage: curl -fsSL https://raw.githubusercontent.com/addereum/md-view/master/install.sh | bash
 
 REPO="addereum/md-view"
+BRANCH="master"
 BIN_NAME="md-view"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 
@@ -57,7 +58,9 @@ main() {
         exit 1
     fi
     
-    # Construct download URL
+    echo -e "${BLUE}Latest version: $VERSION${NC}"
+    
+    # Construct download URL - FIXED EXTENSION
     if [ "$PLATFORM" = "linux-amd64" ]; then
         URL="https://github.com/$REPO/releases/download/$VERSION/md-view-linux-amd64.tar.gz"
     elif [ "$PLATFORM" = "macos-amd64" ]; then
@@ -74,7 +77,7 @@ main() {
     TMP_DIR=$(mktemp -d)
     cd "$TMP_DIR"
     
-    echo -e "${BLUE}Downloading $URL...${NC}"
+    echo -e "${BLUE}Downloading from: $URL${NC}"
     
     # Download and extract
     if [[ "$URL" == *.tar.gz ]]; then
@@ -95,6 +98,7 @@ main() {
     
     if [ -z "$BIN_PATH" ]; then
         echo -e "${RED}Binary not found in archive${NC}"
+        ls -la "$TMP_DIR"
         exit 1
     fi
     
