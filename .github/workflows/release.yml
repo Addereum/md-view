@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger on version tags like v1.0.0
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          body_path: CHANGELOG.md # Optional
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-binaries:
+    name: Build ${{ matrix.target }}
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+            name: linux-amd64
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
+            archive: zip
+            name: windows-amd64
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            archive: zip
+            name: macos-amd64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: zip
+            name: macos-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux)
+        if: matrix.os == 'ubuntu-latest' && matrix.target != 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64  # For Windows target
+
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare artifacts
+        id: prepare
+        shell: bash
+        run: |
+          BINARY_NAME="md-view"
+          TARGET_DIR="target/${{ matrix.target }}/release"
+
+          # Create archive directory
+          mkdir -p artifacts
+
+          # Copy binary
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            cp "$TARGET_DIR/$BINARY_NAME.exe" "artifacts/"
+            BINARY_FILE="$BINARY_NAME.exe"
+          else
+            cp "$TARGET_DIR/$BINARY_NAME" "artifacts/"
+            BINARY_FILE="$BINARY_NAME"
+          fi
+
+          # Copy README and LICENSE if they exist
+          cp README.md artifacts/ 2>/dev/null || :
+          cp LICENSE artifacts/ 2>/dev/null || :
+
+          # Create checksums
+          cd artifacts
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            sha256sum "$BINARY_FILE" > "$BINARY_FILE.sha256"
+          else
+            shasum -a 256 "$BINARY_FILE" > "$BINARY_FILE.sha256"
+          fi
+
+          # Create archive
+          ARCHIVE_NAME="md-view-${{ matrix.name }}-${{ matrix.archive }}"
+          if [[ "${{ matrix.archive }}" == "zip" ]]; then
+            zip -r "../$ARCHIVE_NAME" *
+          else
+            tar czf "../$ARCHIVE_NAME" *
+          fi
+
+          cd ..
+          echo "archive=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          files: |
+            md-view-${{ matrix.name }}-${{ matrix.archive }}

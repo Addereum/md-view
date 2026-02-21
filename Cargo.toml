@@ -1,0 +1,10 @@
+[package]
+name = "md-view"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = "0.27.2"
+egui_commonmark = "0.15.0"
+pulldown-cmark = "0.13.0"
+rfd = "0.14.1"
