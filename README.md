@@ -1,5 +1,3 @@
-md-view - Markdown Browser body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; line-height: 1.6; max-width: 1000px; margin: 0 auto; padding: 20px; color: #333; } h1 { color: #000; border-bottom: 2px solid #eee; padding-bottom: 10px; } h2 { color: #333; margin-top: 30px; } code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; } pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; } table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background: #f4f4f4; } .feature-list { list-style: none; padding: 0; } .feature-list li { margin: 10px 0; font-size: 1.1em; }
-
 # md-view 📝🔍
 
 A sleek, fast Markdown viewer with live preview, written in pure Rust using egui.
